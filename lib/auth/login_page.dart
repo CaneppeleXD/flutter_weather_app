@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/link.dart';
 import 'auth_service.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginPage extends StatelessWidget {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _auth = AuthService();
@@ -9,7 +11,7 @@ class LoginScreen extends StatelessWidget {
   void _login(BuildContext context) async {
     try {
       await _auth.signIn(_email.text, _password.text);
-      Navigator.pushReplacementNamed(context, '/home');
+      context.go('/');
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Login failed: $e")));
@@ -32,11 +34,13 @@ class LoginScreen extends StatelessWidget {
                 obscureText: true),
             ElevatedButton(
                 onPressed: () => _login(context), child: Text('Login')),
-            TextButton(
-              child: Text('No account? Sign up'),
-              onPressed: () => Navigator.pushNamed(
-                  context, '/signup'), // TO DO make this work
-            )
+            Link(
+                uri: Uri.parse('/signup'),
+                builder: (BuildContext context, FollowLink? followLink) =>
+                    TextButton(
+                      onPressed: followLink,
+                      child: Text('No account? Sign up'),
+                    ))
           ],
         ),
       ),

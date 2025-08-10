@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/link.dart';
 import 'auth_service.dart';
 
-class LoginScreen extends StatelessWidget {
+class RegisterPage extends StatelessWidget {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _auth = AuthService(); // TO DO why use _ start of the variable name?
@@ -9,10 +11,10 @@ class LoginScreen extends StatelessWidget {
   void _register(BuildContext context) async {
     try {
       await _auth.signUp(_email.text, _password.text);
-      Navigator.pushReplacementNamed(context, '/home');
+      if (context.mounted) context.go(Uri.parse('/').toString());
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Login failed: $e")));
+          .showSnackBar(SnackBar(content: Text("Register failed: $e")));
     }
   }
 
@@ -31,11 +33,14 @@ class LoginScreen extends StatelessWidget {
                 decoration: InputDecoration(labelText: 'Password'),
                 obscureText: true),
             ElevatedButton(
-                onPressed: () => _register(context), child: Text('Login')),
-            TextButton(
-              child: Text('No account? Sign up'),
-              onPressed: () => Navigator.pushNamed(context, '/signup'),
-            )
+                onPressed: () => _register(context), child: Text('Register')),
+            Link(
+                uri: Uri.parse('/signin'),
+                builder: (BuildContext context, FollowLink? followLink) =>
+                    TextButton(
+                      onPressed: followLink,
+                      child: Text('Already have an account? Sign in'),
+                    ))
           ],
         ),
       ),
