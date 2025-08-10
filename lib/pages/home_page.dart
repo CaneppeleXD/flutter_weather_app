@@ -1,167 +1,129 @@
-import 'package:english_words/english_words.dart';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:namer_app/auth/auth_service.dart';
-import 'package:namer_app/main.dart';
-import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 
 class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
+class Weather {
+  String name;
+  double temperature;
+  String icon;
+
+  Weather({required this.name, required this.temperature, required this.icon});
+}
+
 class _MyHomePageState extends State<MyHomePage> {
   var selectedIndex = 0;
+  double? latitude;
+  double? longitude;
+  Weather? weather;
+
+  @override
+  void initState() {
+    super.initState();
+    initLocationAndTemperature();
+  }
+
+  void initLocationAndTemperature() async {
+    await _getCurrentLocation();
+    if (latitude != null && longitude != null) {
+      this._fetchTemperature(latitude as double, longitude as double);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    Widget page;
-    switch (selectedIndex) {
-      case 0:
-        page = GeneratorPage();
-        break;
-      case 1:
-        page = FavoritesPage();
-        break;
-      default:
-        throw UnimplementedError('no widget for $selectedIndex');
-    }
-
     return LayoutBuilder(builder: (context, constraints) {
       return Scaffold(
         body: Row(
           children: [
             SafeArea(
-              child: NavigationRail(
-                extended: constraints.maxWidth >= 600,
-                destinations: [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.home),
-                    label: Text('Home'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.favorite),
-                    label: Text('Favorites'),
-                  ),
-                ],
-                selectedIndex: selectedIndex,
-                onDestinationSelected: (value) {
-                  setState(() {
-                    selectedIndex = value;
-                  });
-                },
-              ),
-            ),
-            Expanded(
-              child: Container(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: page,
-              ),
-            ),
+                child: Row(
+              children: [
+                Text(weather == null
+                    ? 'Current location: $latitude $longitude'
+                    : 'Current Weather: ${weather?.temperature}K ${weather?.name}'),
+                if (weather != null) Image.network((weather as Weather).icon),
+              ],
+            ))
           ],
         ),
       );
     });
   }
-}
 
-class GeneratorPage extends StatelessWidget {
-  final _auth = AuthService();
+  Future<void> _getCurrentLocation() async {
+    // TO DO put this on a service
+    bool serviceEnabled;
+    LocationPermission permission;
 
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
-
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
+    // Check if location services are enabled
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Location services are disabled")));
+      return;
     }
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        spacing: 10,
-        children: [
-          BigCard(pair: pair),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  appState.toggleFavorite();
-                },
-                icon: Icon(icon),
-                label: Text('Like'),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  appState.getNext();
-                },
-                child: Text('Next'),
-              ),
-            ],
-          ),
-          ElevatedButton(
-            onPressed: () {
-              _auth.signOut();
-            },
-            child: Text('Logout'),
-          ),
-        ],
-      ),
-    );
+    // Check for permissions
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Location permissions are denied")));
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Location permissions are permanently denied")));
+      return;
+    }
+
+    // Get current position
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+
+    setState(() {
+      latitude = position.latitude;
+      longitude = position.longitude;
+    });
   }
-}
 
-class FavoritesPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-
-    if (appState.favorites.isEmpty) {
-      return Center(child: Text('No Favorites Yet'));
-    }
-
-    return ListView(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text('You have ${appState.favorites.length} favorites:'),
+  void _fetchTemperature(double latitude, double longitude) async {
+    // TO DO put this on a service
+    try {
+      // TO DO use env variable for api key
+      final response = await http.get(
+        Uri.parse(
+          'https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&exclude=minutely,hourly,daily,alerts&appid=efc2b0a8976da178769b903ce4fe7b81',
         ),
-        for (var pair in appState.favorites)
-          ListTile(
-            leading: Icon(Icons.favorite),
-            title: Text(pair.asLowerCase),
-          )
-      ],
-    );
-  }
-}
+      );
 
-class BigCard extends StatelessWidget {
-  const BigCard({
-    super.key,
-    required this.pair,
-  });
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final style = theme.textTheme.displayMedium!
-        .copyWith(color: theme.colorScheme.onPrimary);
-
-    return Card(
-      color: theme.colorScheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Text(pair.asLowerCase,
-            style: style, semanticsLabel: "${pair.first} ${pair.second}"),
-      ),
-    );
+      String data = "";
+      if (response.statusCode == 200) {
+        data = response.body;
+        var decodedData = json.decode(data);
+        setState(() {
+          weather = Weather(
+              name: decodedData['weather'][0]['main'],
+              temperature: decodedData['main']
+                  ['temp'], // TO DO convert temperature to celsius
+              icon:
+                  "http://openweathermap.org/img/w/${decodedData["weather"][0]["icon"]}.png");
+        });
+      } else {
+        debugPrint('Failed: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Error: $e');
+    }
   }
 }
