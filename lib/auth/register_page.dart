@@ -20,30 +20,85 @@ class RegisterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-                controller: _email,
-                decoration: InputDecoration(labelText: 'Email')),
-            TextField(
-                controller: _password,
-                decoration: InputDecoration(labelText: 'Password'),
-                obscureText: true),
-            ElevatedButton(
-                onPressed: () => _register(context), child: Text('Register')),
-            Link(
-                uri: Uri.parse('/signin'),
-                builder: (BuildContext context, FollowLink? followLink) =>
-                    TextButton(
-                      onPressed: followLink,
-                      child: Text('Already have an account? Sign in'),
-                    ))
-          ],
+    return LayoutBuilder(builder: (context, constraints) {
+      return Scaffold(
+        body: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxWidth:
+                      constraints.maxWidth >= 600 ? 500 : double.infinity),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person_pin_sharp,
+                      size: 80, color: Theme.of(context).primaryColor),
+                  SizedBox(height: 16),
+                  Text(
+                    'Create an Account',
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 24),
+
+                  // Email
+                  TextField(
+                    controller: _email,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+
+                  // Password
+                  TextField(
+                    controller: _password,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    obscureText: true,
+                  ),
+                  SizedBox(height: 20),
+
+                  // Login Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _register(context),
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Login', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+
+                  SizedBox(height: 12),
+
+                  // Signup Link
+                  Link(
+                      uri: Uri.parse('/signin'),
+                      builder: (BuildContext context, FollowLink? followLink) =>
+                          TextButton(
+                            onPressed: followLink,
+                            child: Text('Already have an account? Sign in'),
+                          )),
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
