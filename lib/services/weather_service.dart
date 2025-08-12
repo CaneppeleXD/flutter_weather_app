@@ -8,8 +8,13 @@ class Weather {
   String name;
   double temperature;
   String icon;
+  String cityName;
 
-  Weather({required this.name, required this.temperature, required this.icon});
+  Weather(
+      {required this.name,
+      required this.temperature,
+      required this.icon,
+      required this.cityName});
 }
 
 abstract class AbstractTemperatureScale {
@@ -53,11 +58,13 @@ class WeatherService {
       if (response.statusCode == 200) {
         data = response.body;
         var decodedData = json.decode(data);
+        debugPrint(data);
         return Weather(
             name: decodedData['weather'][0]['main'],
             temperature: decodedData['main']['temp'],
             icon:
-                "https://openweathermap.org/img/wn/${decodedData["weather"][0]["icon"]}.png");
+                "https://openweathermap.org/img/wn/${decodedData["weather"][0]["icon"]}.png",
+            cityName: decodedData['name']);
       } else {
         throw ErrorDescription('Temperature API returned code other than 200');
       }
