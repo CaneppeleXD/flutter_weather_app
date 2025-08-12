@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:namer_app/auth/login_page.dart';
-import 'package:namer_app/auth/register_page.dart';
+import 'package:namer_app/pages/auth/login_page.dart';
+import 'package:namer_app/pages/auth/register_page.dart';
 import 'package:namer_app/pages/home_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

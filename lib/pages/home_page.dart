@@ -1,32 +1,18 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
-import 'package:namer_app/auth/auth_service.dart';
+import 'package:namer_app/services/auth_service.dart';
+import 'package:namer_app/services/location_service.dart';
+import 'package:namer_app/services/weather_service.dart';
 
 class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class Weather {
-  String name;
-  double temperature;
-  String icon;
-
-  Weather({required this.name, required this.temperature, required this.icon});
-}
-
-enum TemperatureScale { celsius, fahrenheit }
-
 class _MyHomePageState extends State<MyHomePage> {
   var selectedIndex = 0;
-  double? latitude;
-  double? longitude;
+  LocationResult? location;
   Weather? weather;
-  TemperatureScale scale = TemperatureScale.celsius;
+  TemperatureScaleTypes scale = TemperatureScaleTypes.celsius;
 
   @override
   void initState() {
@@ -36,18 +22,24 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void initLocationAndTemperature() async {
     await _getCurrentLocation();
-    if (latitude != null && longitude != null) {
-      _fetchTemperature(latitude as double, longitude as double);
+    if (location?.status == PermissionStatus.allowed) {
+      _fetchTemperature(
+          location?.latitude as double, location?.longitude as double);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final w = weather;
-    final scaleSymbol = scale == TemperatureScale.celsius ? 'C°' : 'F°';
-    final altSymbol = scale == TemperatureScale.celsius
-        ? 'F°'
-        : 'C°'; // Create a class to abstract this exuastive comparisons
+    AbstractTemperatureScale currentScale;
+    AbstractTemperatureScale altScale;
+    if (scale == TemperatureScaleTypes.celsius) {
+      currentScale = CelsiusScale();
+      altScale = FahrenheitScale();
+    } else {
+      currentScale = FahrenheitScale();
+      altScale = CelsiusScale();
+    }
     return Scaffold(
       body: SafeArea(
           child: Center(
@@ -56,8 +48,8 @@ class _MyHomePageState extends State<MyHomePage> {
           spacing: 10,
           children: [
             SizedBox(
-              width: 250, // TO DO make it bigger
-              height: 120,
+              width: 320, // TO DO Make different layout for mobile and web
+              height: 240,
               child: Card(
                 elevation: 6,
                 shape: RoundedRectangleBorder(
@@ -65,74 +57,107 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: w == null
-                      ? const _WeatherSkeleton()
-                      : Row(
-                          children: [
-                            Image.network(
-                              // TO DO make skeleton show when the image is loading
-                              w.icon,
-                              width: 64,
-                              height: 64,
-                              fit: BoxFit.contain,
-                            ),
-                            const SizedBox(width: 16),
-                            Column(
+                  child: location == null
+                      ? WeatherSkeleton()
+                      : location?.status != PermissionStatus.allowed
+                          ? Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${(scale == TemperatureScale.celsius ? _kelvinToCelsius(w.temperature) : _kelvinToFahrenheit(w.temperature)).round()} $scaleSymbol',
+                                Icon(Icons.warning,
+                                    size: 50,
+                                    color: Theme.of(context).primaryColor),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Text(
+                                      location?.status ==
+                                              PermissionStatus.disabled
+                                          ? 'Location Disabled'
+                                          : 'Location Permission Denied',
                                       style: const TextStyle(
-                                        fontSize: 28,
+                                        fontSize: 24,
                                         fontWeight: FontWeight.bold,
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Column(
-                                      children: [
-                                        TextButton(
-                                          style: TextButton.styleFrom(
-                                            padding: EdgeInsets.zero,
-                                            minimumSize: Size.zero,
-                                            tapTargetSize: MaterialTapTargetSize
-                                                .shrinkWrap,
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                          ),
-                                          onPressed: () {
-                                            setState(() {
-                                              scale = scale ==
-                                                      TemperatureScale.celsius
-                                                  ? TemperatureScale.fahrenheit
-                                                  : TemperatureScale.celsius;
-                                            });
-                                          },
-                                          child: Text(
-                                            altSymbol,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                Text(
-                                  w.name,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey,
-                                  ),
+                                      softWrap: true),
                                 ),
                               ],
                             )
-                          ],
-                        ),
+                          : w == null
+                              ? WeatherSkeleton()
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Image.network(
+                                      w.icon,
+                                      width: 72,
+                                      height: 72,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${currentScale.kelvinToScale(w.temperature).round()} ${currentScale.unit}',
+                                              style: const TextStyle(
+                                                fontSize: 42,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Column(
+                                              children: [
+                                                TextButton(
+                                                  style: TextButton.styleFrom(
+                                                    padding: EdgeInsets.zero,
+                                                    minimumSize: Size.zero,
+                                                    tapTargetSize:
+                                                        MaterialTapTargetSize
+                                                            .shrinkWrap,
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                  ),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      scale = scale ==
+                                                              TemperatureScaleTypes
+                                                                  .celsius
+                                                          ? TemperatureScaleTypes
+                                                              .fahrenheit
+                                                          : TemperatureScaleTypes
+                                                              .celsius;
+                                                    });
+                                                  },
+                                                  child: Text(
+                                                    altScale.unit,
+                                                    style: const TextStyle(
+                                                      fontSize: 22,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        Text(
+                                          w.name,
+                                          style: const TextStyle(
+                                            fontSize: 28,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  ],
+                                ),
                 ),
               ),
             ),
@@ -145,95 +170,32 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  double _kelvinToCelsius(double kelvin) {
-    return kelvin - 273.15;
-  }
-
-  double _kelvinToFahrenheit(double kelvin) {
-    return (kelvin - 273.15) * 9 / 5 + 32;
-  }
-
   Future<void> _getCurrentLocation() async {
-    // TO DO put this on a service
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Check if location services are enabled
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Location services are disabled")));
-      return;
-    }
-
-    // Check for permissions
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Location permissions are denied")));
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Location permissions are permanently denied")));
-      return;
-    }
-
-    // Get current position
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-
+    final loc = await LocationService().getCurrentLocation();
     setState(() {
-      latitude = position.latitude;
-      longitude = position.longitude;
+      location = loc;
     });
   }
 
   void _fetchTemperature(double latitude, double longitude) async {
-    // TO DO put this on a service
     try {
-      // TO DO use env variable for api key
-      final response = await http.get(
-        Uri.parse(
-          'https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&exclude=minutely,hourly,daily,alerts&appid=${dotenv.env['OPEN_WEATHER_APP_ID']!}',
-        ),
-      );
-
-      String data = "";
-      if (response.statusCode == 200) {
-        data = response.body;
-        var decodedData = json.decode(data);
-        setState(() {
-          weather = Weather(
-              name: decodedData['weather'][0]['main'],
-              temperature: decodedData['main']
-                  ['temp'], // TO DO convert temperature to celsius
-              icon:
-                  "https://openweathermap.org/img/wn/${decodedData["weather"][0]["icon"]}.png");
-        });
-      } else {
-        debugPrint('Failed: ${response.body}');
-      }
+      final w = await WeatherService().fetchTemperature(latitude, longitude);
+      setState(() {
+        weather = w;
+      });
     } catch (e) {
       debugPrint('Error: $e');
     }
   }
 }
 
-// TO DO refactor code into different components
-class _WeatherSkeleton extends StatefulWidget {
-  // TO DO take a look at the docs if this follows correct standard name
-  const _WeatherSkeleton();
-
+// TO DO refactor this
+class WeatherSkeleton extends StatefulWidget {
   @override
-  State<_WeatherSkeleton> createState() => _WeatherSkeletonState();
+  State<WeatherSkeleton> createState() => _WeatherSkeletonState();
 }
 
-class _WeatherSkeletonState extends State<_WeatherSkeleton>
+class _WeatherSkeletonState extends State<WeatherSkeleton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Color?> _colorAnim;
@@ -263,6 +225,8 @@ class _WeatherSkeletonState extends State<_WeatherSkeleton>
       animation: _colorAnim,
       builder: (context, _) {
         return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
               width: 64,

@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/link.dart';
-import 'auth_service.dart';
+import '../../services/auth_service.dart';
 
-class RegisterPage extends StatelessWidget {
+class LoginPage extends StatelessWidget {
   final _email = TextEditingController();
   final _password = TextEditingController();
-  final _auth = AuthService(); // TO DO why use _ start of the variable name?
+  final _auth = AuthService();
 
-  void _register(BuildContext context) async {
+  void _login(BuildContext context) async {
     try {
-      await _auth.signUp(_email.text, _password.text);
-      if (context.mounted) context.go(Uri.parse('/').toString());
+      await _auth.signIn(_email.text, _password.text);
+      context.go('/');
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Register failed: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login failed: $e")),
+      );
     }
   }
 
@@ -32,11 +33,11 @@ class RegisterPage extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.person_pin_sharp,
+                  Icon(Icons.arrow_circle_right_outlined,
                       size: 80, color: Theme.of(context).primaryColor),
                   SizedBox(height: 16),
                   Text(
-                    'Create an Account',
+                    'Welcome Back',
                     style: Theme.of(context)
                         .textTheme
                         .headlineMedium
@@ -73,7 +74,7 @@ class RegisterPage extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () => _register(context),
+                      onPressed: () => _login(context),
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -87,12 +88,13 @@ class RegisterPage extends StatelessWidget {
 
                   // Signup Link
                   Link(
-                      uri: Uri.parse('/signin'),
-                      builder: (BuildContext context, FollowLink? followLink) =>
-                          TextButton(
-                            onPressed: followLink,
-                            child: Text('Already have an account? Sign in'),
-                          )),
+                    uri: Uri.parse('/signup'),
+                    builder: (BuildContext context, FollowLink? followLink) =>
+                        TextButton(
+                      onPressed: followLink,
+                      child: Text('No account? Sign up'),
+                    ),
+                  ),
                 ],
               ),
             ),

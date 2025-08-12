@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/link.dart';
-import 'auth_service.dart';
+import '../../services/auth_service.dart';
 
-class LoginPage extends StatelessWidget {
+class RegisterPage extends StatelessWidget {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _auth = AuthService();
 
-  void _login(BuildContext context) async {
+  void _register(BuildContext context) async {
     try {
-      await _auth.signIn(_email.text, _password.text);
-      context.go('/');
+      await _auth.signUp(_email.text, _password.text);
+      if (context.mounted) context.go(Uri.parse('/').toString());
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: $e")),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Register failed: $e")));
+      }
     }
   }
 
@@ -33,11 +34,11 @@ class LoginPage extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.arrow_circle_right_outlined,
+                  Icon(Icons.person_pin_sharp,
                       size: 80, color: Theme.of(context).primaryColor),
                   SizedBox(height: 16),
                   Text(
-                    'Welcome Back',
+                    'Create an Account',
                     style: Theme.of(context)
                         .textTheme
                         .headlineMedium
@@ -74,7 +75,7 @@ class LoginPage extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () => _login(context),
+                      onPressed: () => _register(context),
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -88,13 +89,12 @@ class LoginPage extends StatelessWidget {
 
                   // Signup Link
                   Link(
-                    uri: Uri.parse('/signup'),
-                    builder: (BuildContext context, FollowLink? followLink) =>
-                        TextButton(
-                      onPressed: followLink,
-                      child: Text('No account? Sign up'),
-                    ),
-                  ),
+                      uri: Uri.parse('/signin'),
+                      builder: (BuildContext context, FollowLink? followLink) =>
+                          TextButton(
+                            onPressed: followLink,
+                            child: Text('Already have an account? Sign in'),
+                          )),
                 ],
               ),
             ),
