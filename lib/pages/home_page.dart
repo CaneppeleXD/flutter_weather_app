@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:namer_app/auth/auth_service.dart';
@@ -198,7 +199,7 @@ class _MyHomePageState extends State<MyHomePage> {
       // TO DO use env variable for api key
       final response = await http.get(
         Uri.parse(
-          'https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&exclude=minutely,hourly,daily,alerts&appid=efc2b0a8976da178769b903ce4fe7b81',
+          'https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&exclude=minutely,hourly,daily,alerts&appid=${dotenv.env['OPEN_WEATHER_APP_ID']!}',
         ),
       );
 
@@ -223,6 +224,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+// TO DO refactor code into different components
 class _WeatherSkeleton extends StatefulWidget {
   // TO DO take a look at the docs if this follows correct standard name
   const _WeatherSkeleton();

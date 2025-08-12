@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:namer_app/routes/routes.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await dotenv.load(fileName: ".env");
+
   await Supabase.initialize(
-    // TO DO put key on an env and search if using anon key is secure and how does it maintains session, is it through JWT token or what?
-    url: 'https://hzzgulnatcbtjdcgwycg.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6emd1bG5hdGNidGpkY2d3eWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2ODI3MjMsImV4cCI6MjA3MDI1ODcyM30.Wh6uT2hV5Jx8We_27FkP3IMlZT2w6tAMbYgQiyJmGVc',
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
   runApp(MyApp());
