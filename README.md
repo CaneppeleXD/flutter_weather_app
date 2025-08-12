@@ -6,7 +6,7 @@ The application developed here focused on the principles of the Flutter framewor
 ## Structure
 The application follows a basic structure; in the beginning, the user may sign out or sign up, and after authentication, they are presented with their current temperature at their location; if they have not allowed for their location, the application will fail gracefully, displaying a message on the page. In addition to that, the reader may notice that OOP was used where possible, and also complex logics such as requesting user location and weather were placed in specific services for better understanding by other developers.
 
-## Authentation
+## Authentication
 The authentication provider being used in this application is Supabase through their official Flutter API [3]. The user can sign up and sign in with email and password; due to the limited scope of this application, the email confirmation functionality made available by Supabase was not implemented
 
 ## Difficulties during development
