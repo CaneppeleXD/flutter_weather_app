@@ -81,7 +81,8 @@ class RegisterPage extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text('Login', style: TextStyle(fontSize: 16)),
+                      child: Text('Create Account',
+                          style: TextStyle(fontSize: 16)),
                     ),
                   ),
 
