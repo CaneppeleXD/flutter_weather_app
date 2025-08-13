@@ -17,7 +17,7 @@ void main() async {
 
   runApp(MyApp());
 }
-
+** the application is not running on mobile, improve home page skeleton **
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -33,25 +33,5 @@ class MyApp extends StatelessWidget {
           ),
           routerConfig: Routes.router,
         ));
-  }
-}
-
-class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
-
-  void getNext() {
-    current = WordPair.random();
-    notifyListeners();
-  }
-
-  var favorites = <WordPair>[];
-
-  void toggleFavorite() {
-    if (favorites.contains(current)) {
-      favorites.remove(current);
-    } else {
-      favorites.add(current);
-    }
-    notifyListeners();
   }
 }
